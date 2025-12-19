@@ -4,7 +4,7 @@
  * Copyright (C) 2019-2025 Cypress Semiconductor Corporation, or a subsidiary of
  * Cypress Semiconductor Corporation.  All Rights Reserved.
  *
- * Updated configuration to support CM33.
+ * Updated configuration to support CM55.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -53,8 +53,8 @@
  * CY_CFG_PWR_DEEPSLEEP_LATENCY - Deep Sleep Latency (ms)
  */
 #include "cycfg_system.h"
-#include "cy_device_headers.h"
 #endif
+
 
 
 #define configUSE_PREEMPTION                    1
@@ -65,8 +65,7 @@ extern uint32_t SystemCoreClock;
 #define configCPU_CLOCK_HZ                      SystemCoreClock
 #define configTICK_RATE_HZ                      ((TickType_t ) 1000)
 #define configMAX_PRIORITIES                    7
-/* Increase the stack size to 256 to support ds-ram feature */
-#define configMINIMAL_STACK_SIZE                256
+#define configMINIMAL_STACK_SIZE                128
 #define configMAX_TASK_NAME_LEN                 16
 #define configUSE_16_BIT_TICKS                  0
 #define configIDLE_SHOULD_YIELD                 1
@@ -79,22 +78,17 @@ extern uint32_t SystemCoreClock;
 #define configUSE_TIME_SLICING                  1
 #define configENABLE_BACKWARD_COMPATIBILITY     0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 5
+#define configENABLE_MVE                        0
 
-/* Compile-time macros to enable or disable TrustZone, Memory Protection Unit (MPU) and Floating Point Unit (FPU) support. */
-/* configENABLE_FPU is set to 0 for the platforms which doesnt support hardware FPU and
-when application makefile has VFP_SELECT configured as softfloat */
-#if defined(COMPONENT_CYW20829) || defined(COMPONENT_CYW89829) || defined(MTB_SOFTFLOAT)
+/* Compile-time macros to enable or disable TrustZone, Memory Protection Unit (MPU) and Floating Point Unit (FPU) support. */ 
+#if defined(MTB_SOFTFLOAT)
 #define configENABLE_FPU                        0
 #else
 #define configENABLE_FPU                        1
 #endif
 #define configENABLE_MPU                        0
 #define configENABLE_TRUSTZONE                  0
-#if defined (COMPONENT_SECURE_DEVICE)
-#define configRUN_FREERTOS_SECURE_ONLY          1
-#else
 #define configRUN_FREERTOS_SECURE_ONLY          0
-#endif
 
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         1
@@ -132,11 +126,8 @@ interrupt safe FreeRTOS API functions can be called.
 !!!! configMAX_SYSCALL_INTERRUPT_PRIORITY must not be set to zero !!!!
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html
 */
-#if defined(COMPONENT_SECURE_DEVICE) || defined(COMPONENT_CYW20829) || defined(COMPONENT_CYW89829)
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY    0x3F
-#else
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY    0x40
-#endif
+
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    0x20
 
 /* configMAX_API_CALL_INTERRUPT_PRIORITY is a new name for configMAX_SYSCALL_INTERRUPT_PRIORITY
  that is used by newer ports only. The two are equivalent. */
@@ -193,8 +184,7 @@ standard names - or at least those used in the unmodified vector table. */
  */
 #if defined(CY_CFG_PWR_SYS_IDLE_MODE) && \
     ((CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_SLEEP) || \
-    (CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_DEEPSLEEP) || \
-    (CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_DEEPSLEEP_RAM))
+    (CY_CFG_PWR_SYS_IDLE_MODE == CY_CFG_PWR_MODE_DEEPSLEEP))
 
 /* Enable low power tickless functionality. The RTOS abstraction library
  * provides the compatible implementation of the vApplicationSleep hook:

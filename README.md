@@ -8,7 +8,7 @@ This code example has a three project structure: CM33 secure, CM33 non-secure, a
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-psoc-edge-filesystem-littlefs-freertos)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyNDE5MTYiLCJTcGVjIE51bWJlciI6IjAwMi00MTkxNiIsIkRvYyBUaXRsZSI6IlBTT0MmdHJhZGU7IEVkZ2UgTUNVOiBMaXR0bGUgZmlsZSBzeXN0ZW0iLCJyaWQiOiJwZWV5dXNoIGt1bWFyIiwiRG9jIHZlcnNpb24iOiIyLjAuMCIsIkRvYyBMYW5ndWFnZSI6IkVuZ2xpc2giLCJEb2MgRGl2aXNpb24iOiJNQ0QiLCJEb2MgQlUiOiJJQ1ciLCJEb2MgRmFtaWx5IjoiUFNPQyJ9)
+[Provide feedback on this code example.](https://yourvoice.infineon.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyNDE5MTYiLCJTcGVjIE51bWJlciI6IjAwMi00MTkxNiIsIkRvYyBUaXRsZSI6IlBTT0MmdHJhZGU7IEVkZ2UgTUNVOiBMaXR0bGUgZmlsZSBzeXN0ZW0iLCJyaWQiOiJwZWV5dXNoLmt1bWFyQGluZmluZW9uLmNvbSIsIkRvYyB2ZXJzaW9uIjoiMi4xLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IlBTT0MifQ==)
 
 See the [Design and implementation](docs/design_and_implementation.md) for the functional description of this code example.
 
@@ -33,6 +33,7 @@ See the [Design and implementation](docs/design_and_implementation.md) for the f
 
 - [PSOC&trade; Edge E84 Evaluation Kit](https://www.infineon.com/KIT_PSE84_EVAL) (`KIT_PSE84_EVAL_EPC2`) – Default value of `TARGET`
 - [PSOC&trade; Edge E84 Evaluation Kit](https://www.infineon.com/KIT_PSE84_EVAL) (`KIT_PSE84_EVAL_EPC4`)
+- [PSOC&trade; Edge E84 AI Kit](https://www.infineon.com/KIT_PSE84_AI) (`KIT_PSE84_AI`)
 
 
 ## Hardware setup
@@ -43,6 +44,7 @@ Ensure the following jumper and pin configuration on board.
 - BOOT SW must be in the HIGH/ON position
 - J20 and J21 must be in the tristate/not connected (NC) position
 
+> **Note:** This hardware setup is not required for KIT_PSE84_AI.
 
 ## Software setup
 
@@ -81,6 +83,7 @@ See [Using the code example](docs/using_the_code_example.md) for instructions on
 
 6. By default, the application uses the NOR flash as the storage device. To change the storage device to the SD card, set the value of the `STORAGE_DEVICE_SD_CARD` macro in *main.c* to '1', then build the application and program the kit
 
+> **Note:** KIT_PSE84_AI supports only NOR flash as the storage device.
 
 ## Related resources
 
@@ -109,6 +112,7 @@ Document title: *CE241916* – *PSOC&trade; Edge MCU: Little file system*
  ------- | ---------------------
  1.x.0   | New code example <br> Early access release
  2.0.0   | GitHub release
+ 2.1.0   | Added KIT_PSE84_AI BSP support
 <br>
 
 
