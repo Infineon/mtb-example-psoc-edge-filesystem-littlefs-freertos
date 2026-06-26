@@ -7,33 +7,33 @@
 * Related Document : See README.md
 *
 ********************************************************************************
- * (c) 2025, Infineon Technologies AG, or an affiliate of Infineon
- * Technologies AG. All rights reserved.
- * This software, associated documentation and materials ("Software") is
- * owned by Infineon Technologies AG or one of its affiliates ("Infineon")
- * and is protected by and subject to worldwide patent protection, worldwide
- * copyright laws, and international treaty provisions. Therefore, you may use
- * this Software only as provided in the license agreement accompanying the
- * software package from which you obtained this Software. If no license
- * agreement applies, then any use, reproduction, modification, translation, or
- * compilation of this Software is prohibited without the express written
- * permission of Infineon.
- *
- * Disclaimer: UNLESS OTHERWISE EXPRESSLY AGREED WITH INFINEON, THIS SOFTWARE
- * IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
- * INCLUDING, BUT NOT LIMITED TO, ALL WARRANTIES OF NON-INFRINGEMENT OF
- * THIRD-PARTY RIGHTS AND IMPLIED WARRANTIES SUCH AS WARRANTIES OF FITNESS FOR A
- * SPECIFIC USE/PURPOSE OR MERCHANTABILITY.
- * Infineon reserves the right to make changes to the Software without notice.
- * You are responsible for properly designing, programming, and testing the
- * functionality and safety of your intended application of the Software, as
- * well as complying with any legal requirements related to its use. Infineon
- * does not guarantee that the Software will be free from intrusion, data theft
- * or loss, or other breaches ("Security Breaches"), and Infineon shall have
- * no liability arising out of any Security Breaches. Unless otherwise
- * explicitly approved by Infineon, the Software may not be used in any
- * application where a failure of the Product or any consequences of the use
- * thereof can reasonably be expected to result in personal injury.
+* (c) 2025-2026, Infineon Technologies AG, or an affiliate of Infineon
+* Technologies AG. All rights reserved.
+* This software, associated documentation and materials ("Software") is
+* owned by Infineon Technologies AG or one of its affiliates ("Infineon")
+* and is protected by and subject to worldwide patent protection, worldwide
+* copyright laws, and international treaty provisions. Therefore, you may use
+* this Software only as provided in the license agreement accompanying the
+* software package from which you obtained this Software. If no license
+* agreement applies, then any use, reproduction, modification, translation, or
+* compilation of this Software is prohibited without the express written
+* permission of Infineon.
+*
+* Disclaimer: UNLESS OTHERWISE EXPRESSLY AGREED WITH INFINEON, THIS SOFTWARE
+* IS PROVIDED AS-IS, WITH NO WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+* INCLUDING, BUT NOT LIMITED TO, ALL WARRANTIES OF NON-INFRINGEMENT OF
+* THIRD-PARTY RIGHTS AND IMPLIED WARRANTIES SUCH AS WARRANTIES OF FITNESS FOR A
+* SPECIFIC USE/PURPOSE OR MERCHANTABILITY.
+* Infineon reserves the right to make changes to the Software without notice.
+* You are responsible for properly designing, programming, and testing the
+* functionality and safety of your intended application of the Software, as
+* well as complying with any legal requirements related to its use. Infineon
+* does not guarantee that the Software will be free from intrusion, data theft
+* or loss, or other breaches ("Security Breaches"), and Infineon shall have
+* no liability arising out of any Security Breaches. Unless otherwise
+* explicitly approved by Infineon, the Software may not be used in any
+* application where a failure of the Product or any consequences of the use
+* thereof can reasonably be expected to result in personal injury.
 *******************************************************************************/
 
 /*******************************************************************************
@@ -69,11 +69,9 @@
 #define FLASH_LFS_SIZE                      (0x80000U)
 #define LITTLEFS_TASK_STACK_SIZE            (configMINIMAL_STACK_SIZE * 8U)
 #define LITTLEFS_TASK_PRIORITY              (configMAX_PRIORITIES - 1U)
-#define USER_BUTTON_ISR_PRIORITY            (3U)
+#define APP_USER_BUTTON_ISR_PRIORITY        (3U)
+#define APP_SDHC_INTF_ISR_PRIORITY          (7U)
 #define PORT_INTR_MASK                      (0x00000001UL << CYBSP_USER_BTN1_PORT_NUM)
-
-/* Debounce delay for the user button. */
-#define DEBOUNCE_DELAY_MS                   (50U)
 
 /* The timeout value in microsecond used to wait for core to be booted */
 #define CM55_BOOT_WAIT_TIME_USEC            (10U)
@@ -97,6 +95,35 @@ static mtb_hal_lptimer_t lptimer_obj;
 
 /* RTC HAL object */
 static mtb_hal_rtc_t rtc_obj;
+
+#if(STORAGE_DEVICE_SD_CARD)
+static mtb_hal_sdhc_t sdhc_obj;
+static cy_stc_sd_host_context_t sdhc_host_context;
+
+/* SysPm callback parameter structure for SDHC */
+static cy_stc_syspm_callback_params_t sdcardDSParams =
+{
+    .context   = &sdhc_host_context,
+    .base      = CYBSP_SDHC_1_HW
+};
+
+/* SysPm callback structure for SDHC*/
+static cy_stc_syspm_callback_t sdhcDeepSleepCallbackHandler =
+{
+    .callback           = Cy_SD_Host_DeepSleepCallback,
+    .skipMode           = SYSPM_SKIP_MODE,
+    .type               = CY_SYSPM_DEEPSLEEP,
+    .callbackParams     = &sdcardDSParams,
+    .prevItm            = NULL,
+    .nextItm            = NULL,
+    .order              = SYSPM_CALLBACK_ORDER
+};
+
+#else /* STORAGE_DEVICE_SD_CARD */
+static mtb_serial_memory_t serial_memory_obj;
+static cy_stc_smif_mem_context_t smif_mem_context;
+static cy_stc_smif_mem_info_t smif_mem_info;
+#endif
 
 /*******************************************************************************
 * Function Name: setup_clib_support
@@ -287,6 +314,7 @@ static void user_button_interrupt_handler()
     if(PORT_INTR_MASK == (intrSrc & PORT_INTR_MASK))
     {
         Cy_GPIO_ClearInterrupt(CYBSP_USER_BTN1_PORT, CYBSP_USER_BTN1_PIN);
+        NVIC_ClearPendingIRQ(CYBSP_USER_BTN1_IRQ);
 
         BaseType_t higher_priority_task_woken = pdFALSE;
         vTaskNotifyGiveFromISR(littlefs_task_handle, &higher_priority_task_woken);
@@ -297,9 +325,6 @@ static void user_button_interrupt_handler()
 }
 
 #if(STORAGE_DEVICE_SD_CARD)
-
-static mtb_hal_sdhc_t sdhc_obj;
-static cy_stc_sd_host_context_t sdhc_host_context;
 
 /*******************************************************************************
 * Function Name: sd_card_isr
@@ -358,7 +383,7 @@ static void init_lfs_sd_card(void)
     cy_stc_sysint_t sdhc_isr_config =
     {
         .intrSrc = CYBSP_SDHC_1_IRQ,
-        .intrPriority = 3U
+        .intrPriority = APP_SDHC_INTF_ISR_PRIORITY
     };
 
     /* The SD Card should be enabled before calling any other SD Card APIs */
@@ -391,6 +416,10 @@ static void init_lfs_sd_card(void)
                                                     (uint32_t)pdl_sdhc_status);
     }
 
+#if (STORAGE_DEVICE_SD_CARD)
+    /* SDHC SysPm callback registration */
+    Cy_SysPm_RegisterCallback(&sdhcDeepSleepCallbackHandler);
+#endif /* (STORAGE_DEVICE_SD_CARD) */
 
     pdl_sysint_status = Cy_SysInt_Init(&sdhc_isr_config, sd_card_isr);
 
@@ -407,10 +436,6 @@ static void init_lfs_sd_card(void)
 }
 #else  /* (STORAGE_DEVICE_SD_CARD) */
 
-static mtb_serial_memory_t serial_memory_obj;
-static cy_stc_smif_mem_context_t smif_mem_context;
-static cy_stc_smif_mem_info_t smif_mem_info;
-
 /*******************************************************************************
 * Function Name: init_lfs_flash
 ********************************************************************************
@@ -426,6 +451,15 @@ static void init_lfs_flash(void)
     cy_rslt_t result;
 
     /* Set-up serial memory. */
+#if defined(CYBSP_OSPI_FLASH_SS_ENABLED)
+    result = mtb_serial_memory_setup(&serial_memory_obj, 
+                                MTB_SERIAL_MEMORY_CHIP_SELECT_0, 
+                                CYBSP_SMIF_CORE_0_XSPI_FLASH_hal_config.base,
+                                CYBSP_SMIF_CORE_0_XSPI_FLASH_hal_config.clock,
+                                &smif_mem_context, 
+                                &smif_mem_info,
+                                &smif0BlockConfig);
+#else
     result = mtb_serial_memory_setup(&serial_memory_obj, 
                                 MTB_SERIAL_MEMORY_CHIP_SELECT_1, 
                                 CYBSP_SMIF_CORE_0_XSPI_FLASH_hal_config.base,
@@ -433,6 +467,7 @@ static void init_lfs_flash(void)
                                 &smif_mem_context, 
                                 &smif_mem_info,
                                 &smif0BlockConfig);
+#endif
 
     if (CY_RSLT_SUCCESS != result)
     {
@@ -560,12 +595,7 @@ static void littlefs_task(void* arg)
     {
         if (1UL == ulTaskNotifyTake(pdTRUE, portMAX_DELAY))
         {
-            vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_DELAY_MS));
-
-            if (!Cy_GPIO_Read(CYBSP_USER_BTN1_PORT, CYBSP_USER_BTN1_PIN))
-            {
-                break;
-            }
+            break;
         }
     }
 
@@ -613,7 +643,7 @@ int main(void)
     cy_stc_sysint_t user_btn_int_cfg =
     {
         .intrSrc      = CYBSP_USER_BTN1_IRQ,
-        .intrPriority = USER_BUTTON_ISR_PRIORITY,
+        .intrPriority = APP_USER_BUTTON_ISR_PRIORITY,
     };
 
     /* Initialize the device and board peripherals */
